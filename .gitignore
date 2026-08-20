@@ -1,0 +1,28 @@
+# ===== 数据与权重（不提交，README 说明下载/生成方式）=====
+dataset/
+ng.pt
+
+# ===== NitroGen-main 参考代码中的非代码产物 =====
+NitroGen-main/assets/
+NitroGen-main/checkpoints/
+NitroGen-main/nitrogen.egg-info/
+
+# ===== workspace 临时探针产物 =====
+workspace/probe/
+
+# ===== Python 编译产物 =====
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.ipynb_checkpoints/
+
+# ===== IDE / 操作系统 =====
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ===== 日志 =====
+*.log
