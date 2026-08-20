@@ -155,7 +155,7 @@ python scripts/m3_eval.py             # → workspace/m3_eval/（指标表）
 | 1 | 跑通 ng.pt 推理，README 可复现 | 本 README + 推理服务运行 | ✅ |
 | 2 | 500 帧统计 + 10 条序列可视化 | `workspace/m2_analysis/` | ✅ |
 | 3 | 200 帧测试集指标 | `workspace/m3_eval/metrics.csv` + `predictions.parquet` | ✅ |
-| 4 | zero-shot 基线对比（50% / 0.4） | `metrics.csv` 含 `button_baseline_50` / `pearson_baseline_04` 对比列 | ✅ |
+| 4 | zero-shot 基线对比（50% / 0.4） | `metrics.csv` 含 `button_baseline_50` / `pearson_baseline_04` 对比列。按键准确率虚高（模型 0.90 < 全零基线 0.92，已改主报 precision/recall）；摇杆 r≈0.005~0.019 未达 0.4，系评测方式结构性所致（无条件先验 + 无逐帧对齐），归档口径见 `docs/指标归档与实验口径.md` | 🔶 完成·未达标（原因已说明） |
 | 5 | 第 5 天演示（表格或录屏） | 对比表 / 录屏 | ⏳ |
 | 6 | 归档代码 + 指标表 + 3000 字报告 | 本仓库 + 结课报告 | ⏳ |
 

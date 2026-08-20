@@ -55,6 +55,8 @@ def parse_args():
     p.add_argument("--img-size", type=int, default=256, help="噪声占位图边长")
     p.add_argument("--seq-col", default="seq_id", help="序列分组列, 每条序列前 reset()")
     p.add_argument("--out-dir", default="workspace/m3_eval", help="输出目录")
+    p.add_argument("--offset", type=int, default=0, help="起始帧索引 (用于分块评测)")
+    p.add_argument("--limit", type=int, default=0, help="最大帧数, 0=offset 之后全部 (用于分块评测)")
     return p.parse_args()
 
 
@@ -85,8 +87,12 @@ def main():
     os.makedirs(args.out_dir, exist_ok=True)
 
     df = load_input(args.input)
+    n_all = len(df)
+    offset = max(0, min(args.offset, n_all))
+    limit = args.limit if args.limit > 0 else n_all - offset
+    df = df.iloc[offset:offset + limit].reset_index(drop=True)
     n = len(df)
-    print(f"m3_eval: {n} 帧, {df['seq_id'].nunique()} 条序列, 图像占位 {args.img_size}x{args.img_size}")
+    print(f"m3_eval: 块 [{offset},{offset + n}) 共 {n} 帧 (全量 {n_all} 帧), {df['seq_id'].nunique()} 条序列, 图像占位 {args.img_size}x{args.img_size}")
 
     # 摇杆尺度校验: 标注应为 [-1,1]
     for c in STICK_COLS:
