@@ -42,7 +42,7 @@ general-game-agent/
 │   ├── extract_frames.py          # 任务2a：M2 500帧 / 测试集 200帧 提取
 │   ├── extract_frames_v2.py       # 任务2a：改进版（按活跃度挑帧，避免挂机帧）
 │   ├── m2_analysis.py             # 任务2b：按键/摇杆统计 + 10条序列可视化
-│   └── m3_eval.py                 # 任务3/4：M3 零样本评测（待完成）
+│   └── m3_eval.py                 # 任务3/4：M3 零样本评测（已完成）
 └── workspace/
     ├── game_stats.csv             # 86 款游戏分布统计
     ├── elden_ring_chunks.json     # elden_ring 全部 chunk 索引
@@ -136,7 +136,7 @@ python scripts/extract_frames_v2.py   # → M2 500帧 + 测试集 200帧 parquet
 python scripts/m2_analysis.py         # → workspace/m2_analysis/（统计表 + 12 张图）
 ```
 
-### 3.7 M3 零样本评测（MVP 任务 3/4，待完成）
+### 3.7 M3 零样本评测（MVP 任务 3/4，已完成）
 
 ```bash
 # 先启动推理服务（3.2），再运行：
