@@ -42,13 +42,18 @@ general-game-agent/
 │   ├── extract_frames.py          # 任务2a：M2 500帧 / 测试集 200帧 提取
 │   ├── extract_frames_v2.py       # 任务2a：改进版（按活跃度挑帧，避免挂机帧）
 │   ├── m2_analysis.py             # 任务2b：按键/摇杆统计 + 10条序列可视化
-│   └── m3_eval.py                 # 任务3/4：M3 零样本评测（已完成）
+│   ├── m3_eval.py                 # 任务3/4：M3 零样本评测（支持分块）
+│   ├── merge_predictions.py       # 合并分块预测 → predictions_m2.parquet
+│   ├── build_comparison_table.py  # 任务5：预测 vs 标注 逐帧对比表
+│   └── viz_diff.py                # 扩展：20 段手柄动作对比图
 └── workspace/
     ├── game_stats.csv             # 86 款游戏分布统计
     ├── elden_ring_chunks.json     # elden_ring 全部 chunk 索引
     ├── m2_elden_ring_500frames.parquet  # M2 数据集（500帧标注）
     ├── test_elden_ring_200frames.parquet # M3 测试集（200帧标注）
-    └── m2_analysis/               # 统计 CSV + 12 张序列可视化图
+    ├── m2_analysis/               # 统计 CSV + 12 张序列可视化图
+    ├── m3_eval/                   # 评测产物（三跑指标 + 预测 + 对比表 + M2 合并）
+    └── viz_diff/                  # 扩展：20 段对比图
 ```
 
 ---
@@ -146,6 +151,29 @@ python scripts/m3_eval.py             # → workspace/m3_eval/（指标表）
 评测脚本将对 `test_elden_ring_200frames.parquet` 中的 200 帧逐帧调用推理服务，
 计算：按键准确率、摇杆 MSE / 相关系数，并与基线（按键 50% / 摇杆相关 0.4）对比。
 
+独立采样验证：重启服务跑 3 次，按键准确率 `0.9052 ± 0.0007`、Pearson r `0.0081 ± 0.0096`，结论稳定可复现（三跑汇总见 `docs/指标归档与实验口径.md`）。
+
+M2 500 帧全量评测（分块防显存溢出）：
+
+```bash
+python scripts/m3_eval.py --input workspace/m2_elden_ring_500frames.parquet --offset 0 --limit 200 --save --out-dir workspace/m3_eval/m2_blk1
+python scripts/m3_eval.py --input workspace/m2_elden_ring_500frames.parquet --offset 200 --limit 200 --save --out-dir workspace/m3_eval/m2_blk2
+python scripts/m3_eval.py --input workspace/m2_elden_ring_500frames.parquet --offset 400 --limit 100 --save --out-dir workspace/m3_eval/m2_blk3
+python scripts/merge_predictions.py --parts workspace/m3_eval/m2_blk1 workspace/m3_eval/m2_blk2 workspace/m3_eval/m2_blk3 --label workspace/m2_elden_ring_500frames.parquet --out-dir workspace/m3_eval
+```
+
+### 3.8 演示对比表 + 扩展可视化（MVP 任务 5 + 扩展）
+
+```bash
+# 预测 vs 人工标注 逐帧对比表（MVP 5 演示）→ workspace/m3_eval/comparison_table.csv
+python scripts/build_comparison_table.py
+
+# 扩展可视化：20 段手柄动作对比图（标出差异最大 5 帧）→ workspace/viz_diff/viz_segment_01~20.png
+python scripts/viz_diff.py
+```
+
+> 前置：`viz_diff.py` 需要 `predictions_m2.parquet`（3.7 合并产物）存在；`build_comparison_table.py` 需要 M3 `predictions.parquet`（默认输出即 3.7 产物）。
+
 ---
 
 ## 4. 产出物对照（MVP 六项）
@@ -154,10 +182,10 @@ python scripts/m3_eval.py             # → workspace/m3_eval/（指标表）
 |---|--------|--------|------|
 | 1 | 跑通 ng.pt 推理，README 可复现 | 本 README + 推理服务运行 | ✅ |
 | 2 | 500 帧统计 + 10 条序列可视化 | `workspace/m2_analysis/` | ✅ |
-| 3 | 200 帧测试集指标 | `workspace/m3_eval/metrics.csv` + `predictions.parquet` | ✅ |
-| 4 | zero-shot 基线对比（50% / 0.4） | `metrics.csv` 含 `button_baseline_50` / `pearson_baseline_04` 对比列。按键准确率虚高（模型 0.90 < 全零基线 0.92，已改主报 precision/recall）；摇杆 r≈0.005~0.019 未达 0.4，系评测方式结构性所致（无条件先验 + 无逐帧对齐），归档口径见 `docs/指标归档与实验口径.md` | 🔶 完成·未达标（原因已说明） |
-| 5 | 第 5 天演示（表格或录屏） | 对比表 / 录屏 | ⏳ |
-| 6 | 归档代码 + 指标表 + 3000 字报告 | 本仓库 + 结课报告 | ⏳ |
+| 3 | 200 帧测试集指标 | `workspace/m3_eval/metrics.csv` + `predictions.parquet`（三跑） | ✅ |
+| 4 | zero-shot 基线对比（50% / 0.4） | `metrics.csv` 含 `button_baseline_50` / `pearson_baseline_04` 对比列。按键准确率虚高（模型 0.90 < 全零基线 0.92，已改主报 precision/recall）；摇杆 r≈0.008±0.010 未达 0.4，系评测方式结构性所致（无条件先验 + 无逐帧对齐），归档口径见 `docs/指标归档与实验口径.md` | 🔶 完成·未达标（原因已说明） |
+| 5 | 第 5 天演示（表格或录屏） | `workspace/m3_eval/comparison_table.csv`（200 帧逐帧对比 + 差异分） | ✅ |
+| 6 | 归档代码 + 指标表 + 3000 字报告 | 本仓库（代码/指标/自测表已归档）+ 结课报告 | 🔶 报告待写 |
 
 ---
 
@@ -167,7 +195,7 @@ python scripts/m3_eval.py             # → workspace/m3_eval/（指标表）
 2. **首次加载联网**：`AutoImageProcessor.from_pretrained(model_cfg.vision_encoder_name)` 需从 HuggingFace 下载视觉编码器配置。
 3. **serve.py 是交互式的**：若权重含游戏映射表，会阻塞等待输入；直接回车即可跳过。
 4. **数据集不含视频**：`actions_raw.parquet` 只有手柄动作标注（帧序号 + 按键 + 摇杆），无画面帧。
-5. **扩展方向（已选）**：可视化工具——批量导出 20 段手柄动作曲线，标出差异最大的 5 帧（`viz_diff.py`，待完成）。
+5. **扩展方向（已选）**：可视化工具——批量导出 20 段手柄动作曲线，标出差异最大的 5 帧（`viz_diff.py`，已完成，输出 `workspace/viz_diff/`）。
 
 ---
 
