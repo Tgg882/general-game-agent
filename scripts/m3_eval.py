@@ -139,6 +139,10 @@ def main():
     # 按键准确率 = 逐帧逐按键正确 / (N*17)
     btn_acc = float((pred_btns == label_btns).mean())
 
+    # 任务要求基线: 按键准确率 50% (zero-shot 基线, 选题七 MVP 要求 4)
+    BTN_BASELINE_50 = 0.50
+    btn_vs_50 = btn_acc - BTN_BASELINE_50  # >0 达标
+
     # 基线: 全零预测 (无条件先验"安静"基线的上限, 防类别失衡虚高)
     zero_acc = float((label_btns == 0).mean())  # 全零预测的准确率
     tp = int(((pred_btns == 1) & (label_btns == 1)).sum())
@@ -172,10 +176,16 @@ def main():
             r_cols[f"r_{c}"] = float(np.corrcoef(p, l)[0, 1])
     r_avg = float(np.mean(list(r_cols.values())))
 
+    # 任务要求基线: 摇杆相关系数 0.4 (zero-shot 基线, 选题七 MVP 要求 4)
+    PEARSON_BASELINE_04 = 0.40
+    r_vs_04 = r_avg - PEARSON_BASELINE_04  # >0 达标
+
     metrics = {
         "n_frames": n,
         "n_sequences": int(df["seq_id"].nunique()),
         "button_accuracy": btn_acc,
+        "button_baseline_50": BTN_BASELINE_50,   # 任务要求基线
+        "button_vs_baseline": btn_vs_50,         # 达标判定: >0 达标
         "button_zero_baseline": zero_acc,      # 全零预测准确率
         "button_precision": precision,          # 按键=1 的精确率
         "button_recall": recall,                # 按键=1 的召回率
@@ -183,6 +193,8 @@ def main():
         "mse_zero_baseline": zero_mse_avg,      # 全零摇杆基线
         "mse_mean_baseline": mean_mse_avg,      # 均值摇杆基线
         "pearson_sticks_avg": r_avg,
+        "pearson_baseline_04": PEARSON_BASELINE_04,  # 任务要求基线
+        "pearson_vs_baseline": r_vs_04,          # 达标判定: >0 达标
         **mse_cols, **zero_mse_cols, **mean_mse_cols,
         **r_cols,
     }
