@@ -2,13 +2,35 @@
 dataset/
 ng.pt
 
-# ===== NitroGen-main 参考代码中的非代码产物 =====
+# ===== 真实帧与临时帧（可再生成，不入库）=====
+workspace/m2_frames/
+workspace/test_frames/
+workspace/m2_frames_tmp/
+workspace/test_frames_tmp/
+
+# ===== 备份与临时代理探针 =====
+workspace/*.bak
+workspace/_clash_*.py
+workspace/_proxy_test.py
+
+# ===== 报告类（不入库，本地保留供课程提交）=====
+general-game-agent/开发计划.md
+general-game-agent/选题七_通用游戏智能体_任务归纳.md
+general-game-agent/docs/self_test_table.md
+general-game-agent/docs/后续任务路线图与AI提示词.md
+
+# ===== NitroGen-main 参考代码：仅保留 nitrogen/ 核心包与安装元数据 =====
 NitroGen-main/assets/
 NitroGen-main/checkpoints/
 NitroGen-main/nitrogen.egg-info/
+NitroGen-main/scripts/
+NitroGen-main/README.md
 
 # ===== workspace 临时探针产物 =====
 workspace/probe/
+
+# ===== 临时图片 =====
+_tmp_img*.png
 
 # ===== Python 编译产物 =====
 __pycache__/

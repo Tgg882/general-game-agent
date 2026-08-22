@@ -1,3 +1,10 @@
+# serve.py — 模型推理服务器（官方源码，迁移自 MineDojo/NitroGen）
+# 出处: https://github.com/MineDojo/NitroGen （NitroGen-main/scripts/serve.py）
+# 用途: 加载 ng.pt 权重，通过 ZeroMQ 提供推理服务（端口默认 5555）。
+#       本项目 scripts/m3_eval.py 与 scripts/m3_eval_v2.py 通过
+#       nitrogen.inference_client.ModelClient 连接本服务进行零样本评测。
+# 前置: 已 pip install -e NitroGen-main（或 nitro 包已安装）。
+# 运行: python scripts/serve.py <ng.pt路径> --port 5555
 import zmq
 import argparse
 import pickle

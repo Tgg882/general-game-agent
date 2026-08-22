@@ -8,7 +8,8 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
-WS = Path(r"C:\Users\HP\Desktop\general-game-agent\workspace")
+PROJECT = Path(__file__).resolve().parent.parent  # 仓库根目录
+WS = PROJECT / "workspace"
 CHUNK_LIST = WS / "elden_ring_chunks.json"
 
 BTN_COLS = ["back", "dpad_down", "dpad_left", "dpad_right", "dpad_up", "east", "guide",

@@ -7,8 +7,9 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
-ROOT = Path(r"C:\Users\HP\Desktop\general-game-agent\dataset\SHARD_0000")
-OUT_CSV = Path(r"C:\Users\HP\Desktop\general-game-agent\workspace\game_stats.csv")
+PROJECT = Path(__file__).resolve().parent.parent  # 仓库根目录
+ROOT = PROJECT / "dataset" / "SHARD_0000"
+OUT_CSV = PROJECT / "workspace" / "game_stats.csv"
 
 # game -> {frames, chunks, videos:set, controller:set}
 stats = defaultdict(lambda: {"frames": 0, "chunks": 0, "videos": set(), "controllers": set()})

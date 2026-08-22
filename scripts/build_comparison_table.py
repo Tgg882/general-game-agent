@@ -6,7 +6,7 @@
   - 最后一列 frame_diff_score = 按键错误数/17 + 摇杆欧氏距离/2 (0~1, 越小越像)
 
 用法:
-  python scripts/build_comparison_table.py [--pred workspace/m3_eval/predictions.parquet]
+  python scripts/build_comparison_table.py [--pred workspace/m3_eval/predictions_v2.parquet]
                                            [--label workspace/test_elden_ring_200frames.parquet]
                                            [--out workspace/m3_eval/comparison_table.csv]
 """
@@ -29,8 +29,8 @@ STICK_COLS = ["j_left_x", "j_left_y", "j_right_x", "j_right_y"]
 
 def parse_args():
     p = argparse.ArgumentParser(description="T5.1 演示对比表: 预测 vs 人工标注 逐帧对比")
-    p.add_argument("--pred", default="workspace/m3_eval/predictions.parquet",
-                   help="预测 parquet (M3 评测产物)")
+    p.add_argument("--pred", default="workspace/m3_eval/predictions_v2.parquet",
+                   help="预测 parquet (M3 真实视频帧评测产物, 最终口径)")
     p.add_argument("--label", default="workspace/test_elden_ring_200frames.parquet",
                    help="人工标注 parquet")
     p.add_argument("--out", default="workspace/m3_eval/comparison_table.csv",

@@ -6,8 +6,9 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 
-ROOT = Path(r"C:\Users\HP\Desktop\general-game-agent\dataset\SHARD_0000")
-OUT = Path(r"C:\Users\HP\Desktop\general-game-agent\workspace\elden_ring_chunks.json")
+PROJECT = Path(__file__).resolve().parent.parent  # 仓库根目录
+ROOT = PROJECT / "dataset" / "SHARD_0000"
+OUT = PROJECT / "workspace" / "elden_ring_chunks.json"
 
 TARGET = "elden_ring"
 records = []

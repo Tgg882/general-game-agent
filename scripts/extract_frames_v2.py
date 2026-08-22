@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""任务2a (重做)：基于"活跃度"挑选 10 个视频中按键+摇杆都活跃的窗口作为 M2 500 帧。"""
+"""任务2a (重建版)：基于"活跃度"挑选 10 个存活视频中按键+摇杆都活跃的窗口作为 M2 500 帧。
+
+背景: 原 M2 的 10 个 Twitch VOD 中 7 个已被平台删除, 无法下载真实帧。
+本重建版从"存活 VOD 池"重新挑选 10 个视频生成 M2 (与 M3 测试集 chunk 不重叠)。
+"""
 import json
 import random
 from pathlib import Path
@@ -8,13 +12,21 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
-WS = Path(r"C:\Users\HP\Desktop\general-game-agent\workspace")
+PROJECT = Path(__file__).resolve().parent.parent  # 仓库根目录
+WS = PROJECT / "workspace"
 CHUNK_LIST = WS / "elden_ring_chunks.json"
 random.seed(42)
 
 BTN_COLS = ["back", "dpad_down", "dpad_left", "dpad_right", "dpad_up", "east", "guide",
             "left_shoulder", "left_thumb", "left_trigger", "north", "right_shoulder",
             "right_thumb", "right_trigger", "south", "start", "west"]
+
+# 已确认被 Twitch/YouTube 删除的 VOD (2026-08-22 探测)
+DEAD_VIDS = {
+    "v2390341180", "v2469787272", "v2142427275", "v2002470506",
+    "v2578903257", "v2465764623", "v2434016041", "v2583251552",
+    "v2511525153",  # 8/22 连通性测试确认已删除
+}
 
 with open(CHUNK_LIST) as f:
     chunks = json.load(f)
@@ -24,9 +36,21 @@ by_video = defaultdict(list)
 for r in chunks:
     by_video[r["video_id"]].append(r)
 
-videos_sorted = sorted(by_video.items(), key=lambda kv: -sum(c["chunk_size"] for c in kv[1]))
+# 存活池按 chunk 总量排序
+videos_sorted = sorted(
+    [(v, cs) for v, cs in by_video.items() if v not in DEAD_VIDS],
+    key=lambda kv: -sum(c["chunk_size"] for c in kv[1]),
+)
+# M3 测试集 (已有真实帧) 的 video/chunk, M2 必须 chunk 级不重叠
+test_df = pd.read_parquet(WS / "test_elden_ring_200frames.parquet")
+TEST_KEYS = set(zip(test_df["video_id"], test_df["chunk_id"]))
+
+print(f"存活 VOD 池: {len(videos_sorted)} 个")
+for v, cs in videos_sorted:
+    print(f"  {v}: total_chunk={sum(c['chunk_size'] for c in cs)}")
+
 m2_videos = [v for v, _ in videos_sorted[:10]]
-test_videos = [v for v, _ in videos_sorted[10:14]]
+print(f"\nM2 重建选用前 10: {m2_videos}")
 
 
 def activity_score(pq_path):
@@ -43,8 +67,8 @@ def activity_score(pq_path):
     return btn_rate + 0.5 * any_btn + 0.3 * (l_active + r_active)
 
 
-def pick_active_window(pq_path, win=50, step=50, top_k=3):
-    """在 chunk 中按 50 帧滑动窗口扫，挑最活跃的 1 个窗口。"""
+def pick_active_window(pq_path, win=50, step=50):
+    """在 chunk 中按 50 帧滑动窗口扫，挑最活跃的 1 个窗口 (从 row 200 开始, 确定性)."""
     tbl = pq.read_table(pq_path)
     df = tbl.to_pandas()
     n = len(df)
@@ -60,20 +84,24 @@ def pick_active_window(pq_path, win=50, step=50, top_k=3):
     return best_start, best_score
 
 
-def extract_sequences(video_ids, seq_frames=50, tag=""):
+def extract_sequences(video_ids, seq_frames=50):
     rows = []
     seq_id = 0
     for vid in video_ids:
-        # 选 1 个 chunk：抽几个候选，跑 activity_score 取最高
-        cand = by_video[vid]
-        cand = [c for c in cand if c["chunk_size"] >= seq_frames + 400]
+        # 候选 chunk: 排除 M3 测试集已用的 chunk
+        cand = [c for c in by_video[vid]
+                if c["chunk_size"] >= seq_frames + 400
+                and (vid, c["chunk_id"]) not in TEST_KEYS]
+        if not cand:
+            print(f"  !! {vid} 无可候选 chunk (排除 TEST 后为空), 跳过")
+            continue
         random.shuffle(cand)
         sample = cand[:6]
         scored = [(activity_score(Path(c["chunk_dir"]) / "actions_raw.parquet"), c) for c in sample]
         scored.sort(key=lambda x: -x[0])
         c = scored[0][1]
         start, score = pick_active_window(Path(c["chunk_dir"]) / "actions_raw.parquet",
-                                           win=seq_frames, step=50)
+                                          win=seq_frames, step=50)
         pq_path = Path(c["chunk_dir"]) / "actions_raw.parquet"
         df = pq.read_table(pq_path).to_pandas()
         seg = df.iloc[start:start + seq_frames].reset_index(drop=True)
@@ -88,30 +116,25 @@ def extract_sequences(video_ids, seq_frames=50, tag=""):
                 "video_id": vid, "chunk_id": c["chunk_id"],
             })
             rows.append(row)
-        print(f"  [{tag}] seq {seq_id}: video={vid} chunk={c['chunk_id']} frames[{start}:{start+seq_frames}] score={score:.1f}")
+        print(f"  [M2] seq {seq_id}: video={vid} chunk={c['chunk_id']} "
+              f"frames[{start}:{start+seq_frames}] score={score:.1f}")
         seq_id += 1
     return pd.DataFrame(rows)
 
 
-print("Extracting M2 (500 frames, activity-picked)...")
-m2_df = extract_sequences(m2_videos, seq_frames=50, tag="M2")
+print("\nExtracting M2 (rebuilt, 500 frames, activity-picked, alive VODs only)...")
+m2_df = extract_sequences(m2_videos, seq_frames=50)
 print(f"M2 total: {len(m2_df)} frames, {m2_df['seq_id'].nunique()} sequences\n")
 
-print("Extracting Test (200 frames, same activity-pick strategy)...")
-test_df = extract_sequences(test_videos, seq_frames=50, tag="TEST")
-print(f"Test total: {len(test_df)} frames\n")
-
+# 校验: 与 M3 测试集 chunk 级不重叠
 m2_keys = set(zip(m2_df["video_id"], m2_df["chunk_id"]))
-test_keys = set(zip(test_df["video_id"], test_df["chunk_id"]))
-assert not (m2_keys & test_keys), "M2 与测试集重叠！"
-print("Check passed: M2 and test set use different videos/chunks.\n")
+overlap = m2_keys & TEST_KEYS
+assert not overlap, f"M2 与测试集 chunk 重叠: {overlap}"
+print(f"Check passed: M2 ({len(m2_keys)} chunks) 与测试集 ({len(TEST_KEYS)} chunks) 不重叠.\n")
 
 m2_out = WS / "m2_elden_ring_500frames.parquet"
-test_out = WS / "test_elden_ring_200frames.parquet"
 m2_df.to_parquet(m2_out, index=False)
-test_df.to_parquet(test_out, index=False)
 print(f"Saved: {m2_out}")
-print(f"Saved: {test_out}")
 
 # 简单校验
 print("\nM2 帧级校验:")

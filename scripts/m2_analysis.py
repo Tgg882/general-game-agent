@@ -11,7 +11,8 @@ import pandas as pd
 plt.rcParams["font.sans-serif"] = ["SimHei", "Microsoft YaHei"]
 plt.rcParams["axes.unicode_minus"] = False
 
-WS = Path(r"C:\Users\HP\Desktop\general-game-agent\workspace")
+PROJECT = Path(__file__).resolve().parent.parent  # 仓库根目录
+WS = PROJECT / "workspace"
 OUT = WS / "m2_analysis"
 (OUT / "sequences").mkdir(parents=True, exist_ok=True)
 
